@@ -3,35 +3,46 @@ import java.util.Scanner;
 
 public class ArmstrongNumber {
 
-    public static int findArmstrongNumber(int number) {
-        int sum = 0;
-        int digitsInNumber = 0;
-        int individualDigits = number;
-
-        while (individualDigits > 0) {
-            digitsInNumber = digitsInNumber + 1;
-            individualDigits = individualDigits / 10;
-        }
-
-        individualDigits = number;
-        for (int index = 1; index <= digitsInNumber; index++) {
-            int remainder = individualDigits % 10;
-            sum = sum + (int) Math.pow(remainder, digitsInNumber);
-            individualDigits /= 10;
-        }
-        return sum;
-    }
-
+    
+    private static final int BASE_DIVISOR = 10;   
+    private static final int INITIAL_COUNT = 0; 
     public static void main(String[] args) {
         try (Scanner scanner = new Scanner(System.in)) {
             System.out.println("Please Enter the Number to Check for Armstrong: ");
-            int number = scanner.nextInt();
-            if (number == findArmstrongNumber(number)) {
-                System.out.println(number + " is Armstrong Number.");
+            int inputNumber = scanner.nextInt();
+            int powerSumofDigits=calculatePowerSumOfDigits(inputNumber);
+            if (isArmStrongNumber(inputNumber,powerSumofDigits)) {
+                System.out.println(inputNumber + " is Armstrong Number.");
             } else {
-                System.out.println(number + " is Not a Armstrong Number.");
+                System.out.println(inputNumber + " is Not a Armstrong Number.");
             }
         }
     }
+
+    public static int calculatePowerSumOfDigits(int inputNumber) {
+        int sumOfDigitsToDigitCountPower = INITIAL_COUNT;
+        int digitCount = INITIAL_COUNT;
+        int individualDigits = inputNumber;
+
+        while (individualDigits > 0) {
+            digitCount = digitCount + 1;
+            individualDigits = individualDigits / BASE_DIVISOR;
+        }
+
+        individualDigits = inputNumber;
+        for (int index = 1; index <= digitCount; index++) {
+            int remainder = individualDigits % BASE_DIVISOR;
+            sumOfDigitsToDigitCountPower = sumOfDigitsToDigitCountPower + (int) Math.pow(remainder, digitCount);
+            individualDigits /= BASE_DIVISOR;
+        }
+        return sumOfDigitsToDigitCountPower;
+    }
+
+  public static boolean isArmStrongNumber(int inputNumber,int powerSumofDigits){
+    if(inputNumber==powerSumofDigits){
+        return true;
+    }
+    return false;
+  }
 
 }

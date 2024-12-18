@@ -44,8 +44,8 @@ public class CountryNameBasedOnCountryCode {
 
         jsonContent.append(line);
       }
-    } catch (IOException e) {
-      e.printStackTrace();
+    } catch (IOException exception) {
+      exception.printStackTrace();
     }
     return jsonContent.toString();
 
@@ -54,12 +54,12 @@ public class CountryNameBasedOnCountryCode {
   public static void convertJsonToMapAndSave(String jsonContent) {
 
     String[] countries = jsonContent.replace("[", "").replace("]", "").split("},");
-    for (String country : countries) {
-      String[] countryParts = country.trim().replace("{", "").replace("}", "").split(", ");
-      String[] countryCodePart=countryParts[0].split(":");
-      String[] countryNamePart=countryParts[1].split(":");
-      String countryCode = countryCodePart[1].trim().replace("\"", "");
-      String countryName = countryNamePart[1].trim().replace("\"", "");
+    for (String countryJson : countries) {
+      String[] countryFields = countryJson.trim().replace("{", "").replace("}", "").split(", ");
+      String[] countryCodeKeyValue=countryFields[0].split(":");
+      String[] countryNameKeyValue=countryFields[1].split(":");
+      String countryCode = countryCodeKeyValue[1].trim().replace("\"", "");
+      String countryName = countryNameKeyValue[1].trim().replace("\"", "");
       countryMap.put(countryCode, countryName);
 
     }

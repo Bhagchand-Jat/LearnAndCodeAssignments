@@ -6,23 +6,23 @@ public class Dice {
 
     public static void main(String[] args) {
         try (Scanner scanner = new Scanner(System.in)) {
-            int Dice_Max_Value = 6;
-            boolean isDiceNotRolled = true;
-            while (isDiceNotRolled) {
+            int rollActionLimit = 6;
+            boolean isDiceRolled = false;
+            while (!isDiceRolled) {
                 System.out.println("Ready to roll? Enter Q to Quit");
                 String readyToRoll = scanner.nextLine();
                 if (!readyToRoll.toLowerCase().equals("q")) {
-                    int diceValue = rollDice(Dice_Max_Value);
-                    System.out.println("You have rolled a " + diceValue);
+                    int diceRollResult = rollDice(rollActionLimit);
+                    System.out.println("You have rolled a " + diceRollResult);
                 } else {
-                    isDiceNotRolled = false;
+                    isDiceRolled = true;
                 }
             }
         }
     }
 
-    public static int rollDice(int Dice_Max_Value) {
-        return new Random().nextInt(1, Dice_Max_Value + 1);
+    public static int rollDice(int rollActionLimit) {
+        return new Random().nextInt(1, rollActionLimit + 1);
     }
 
 }
