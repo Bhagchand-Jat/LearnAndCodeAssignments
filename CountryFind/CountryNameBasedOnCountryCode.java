@@ -1,4 +1,5 @@
 package CountryFind;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -30,25 +31,21 @@ public class CountryNameBasedOnCountryCode {
   }
 
   public static void addCountriesToMap() {
-    String jsonContent = readCountrysDataFromJsonFile();
+    String jsonContent = readCountryDataFromJsonFile();
     convertJsonToMapAndSave(jsonContent);
   }
 
-  public static String readCountrysDataFromJsonFile() {
-
+  public static String readCountryDataFromJsonFile() {
     StringBuilder jsonContent = new StringBuilder();
     try (BufferedReader reader = new BufferedReader(new FileReader(ContryFilePath))) {
-
       String line;
       while ((line = reader.readLine()) != null) {
-
         jsonContent.append(line);
       }
     } catch (IOException exception) {
       exception.printStackTrace();
     }
     return jsonContent.toString();
-
   }
 
   public static void convertJsonToMapAndSave(String jsonContent) {
@@ -56,8 +53,8 @@ public class CountryNameBasedOnCountryCode {
     String[] countries = jsonContent.replace("[", "").replace("]", "").split("},");
     for (String countryJson : countries) {
       String[] countryFields = countryJson.trim().replace("{", "").replace("}", "").split(", ");
-      String[] countryCodeKeyValue=countryFields[0].split(":");
-      String[] countryNameKeyValue=countryFields[1].split(":");
+      String[] countryCodeKeyValue = countryFields[0].split(":");
+      String[] countryNameKeyValue = countryFields[1].split(":");
       String countryCode = countryCodeKeyValue[1].trim().replace("\"", "");
       String countryName = countryNameKeyValue[1].trim().replace("\"", "");
       countryMap.put(countryCode, countryName);
