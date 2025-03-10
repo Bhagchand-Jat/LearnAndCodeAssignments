@@ -3,16 +3,25 @@ package com.ecommerce.model;
 import jakarta.persistence.*;
 
 @Entity
+@Table(name = "users")
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private String email;
     private String name;
     private String password;
 
+    public User() {
+    }
+
     public User(Long id, String email, String name, String password) {
         this.id = id;
+        this.email = email;
+        this.name = name;
+        this.password = password;
+    }
+
+    public User(String email, String name, String password) {
         this.email = email;
         this.name = name;
         this.password = password;

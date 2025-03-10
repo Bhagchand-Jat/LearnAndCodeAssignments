@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "orders")
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -19,6 +20,9 @@ public class Order {
     @ManyToOne
     @JoinColumn(name = "product_id")
     private Product product;
+
+    public Order() {
+    }
 
     public Order(Long id, BigDecimal price, LocalDateTime orderDate, LocalDateTime expectedDelivery, User user,
             Product product) {
