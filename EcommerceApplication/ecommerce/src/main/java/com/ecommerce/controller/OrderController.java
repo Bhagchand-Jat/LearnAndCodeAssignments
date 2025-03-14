@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.ecommerce.model.Order;
@@ -27,21 +29,20 @@ public class OrderController {
 	    private ProductRepository productRepository;
 
 	    @PostMapping
-	    public Order placeOrder(@RequestParam Long userId, @RequestParam Long productId) {
+	    public ResponseEntity<Order> placeOrder(@RequestParam Long userId, @RequestParam Long productId) {
 	        Optional<User> user = userRepository.findById(userId);
 	        Optional<Product> product = productRepository.findById(productId);
 
-	        if (user.isPresent() && product.isPresent()) {
-	            Order order = new Order(product.get().getPrice(),LocalDateTime.now(), LocalDateTime.now().plusDays(5), user.get(), product.get()
-                        );
-//	            order.setUser(user.get());
-//	            order.setProduct(product.get());
-//	            order.setPrice(product.get().getPrice());
-//	            order.setOrderDate(LocalDateTime.now());
-//	            order.setExpectedDelivery(LocalDateTime.now().plusDays(5));
-	            return orderRepository.save(order);
+	        if (user.isPresent()) {
+	        	 if (product.isPresent()) {
+	        		 Order order = new Order(product.get().getPrice(),LocalDateTime.now(), LocalDateTime.now().plusDays(5), user.get(), product.get());
+	        		 return new ResponseEntity<>(orderRepository.save(order), HttpStatus.CREATED);
+	        	 } else {
+	        		 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+	        	 }
+	          
 	        }
-	        return null;
+	        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 	    }
 
 	    @GetMapping("/{userId}")
