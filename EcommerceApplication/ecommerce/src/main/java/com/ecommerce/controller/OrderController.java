@@ -46,7 +46,7 @@ public class OrderController {
 	    }
 
 	    @GetMapping("/{userId}")
-	    public List<Order> getOrderHistory(@PathVariable Long userId) {
-	        return orderRepository.findByUserId(userId);
+	    public ResponseEntity<List<Order>> getOrderHistory(@PathVariable Long userId) {
+	        return new ResponseEntity<>(orderRepository.findByUserId(userId),HttpStatus.OK);
 	    }
 }

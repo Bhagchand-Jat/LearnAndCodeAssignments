@@ -21,13 +21,12 @@ public class CategoryController {
 	private CategoryRepository categoryRepository;
 
 	@GetMapping
-	public List<Category> getAllCategories() {
-		return categoryRepository.findAll();
+	public ResponseEntity<List<Category>> getAllCategories() {
+		return new ResponseEntity<>(categoryRepository.findAll(),HttpStatus.OK);
 	}
 
 	@PostMapping
 	public ResponseEntity<Category> createCategory(@RequestBody Category category) {
-		Category savedCategory = categoryRepository.save(category);
-		return ResponseEntity.status(HttpStatus.CREATED).body(savedCategory);
+		return ResponseEntity.status(HttpStatus.CREATED).body(categoryRepository.save(category));
 	}
 }

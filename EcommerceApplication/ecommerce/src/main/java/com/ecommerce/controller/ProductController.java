@@ -18,8 +18,8 @@ public class ProductController {
 	private ProductRepository productRepository;
 
 	@GetMapping
-	public List<Product> getAllProducts() {
-		return productRepository.findAll();
+	public ResponseEntity<List<Product>> getAllProducts() {
+		return new ResponseEntity<>(productRepository.findAll(),HttpStatus.OK);
 	}
 
 	@GetMapping("/{productId}")
@@ -34,7 +34,7 @@ public class ProductController {
 	}
 
 	@PostMapping
-	public Product addProduct(@RequestBody Product product) {
-		return productRepository.save(product);
+	public ResponseEntity<Product> addProduct(@RequestBody Product product) {
+		return new ResponseEntity<>(productRepository.save(product),HttpStatus.OK);
 	}
 }

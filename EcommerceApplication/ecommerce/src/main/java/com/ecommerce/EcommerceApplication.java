@@ -1,5 +1,6 @@
 package com.ecommerce;
 
+import com.ecommerce.controller.CartController;
 import com.ecommerce.model.Cart;
 import com.ecommerce.model.CartItem;
 import com.ecommerce.model.Category;
@@ -30,11 +31,17 @@ import java.util.stream.Collectors;
 @SpringBootApplication
 public class EcommerceApplication implements CommandLineRunner {
 
+    private final CartController cartController;
+
     private static final String BASE_URL = "http://localhost:8080/api"; 
     private static final RestTemplate restTemplate = new RestTemplate();
     private static final Scanner scanner = new Scanner(System.in);
     private static Long loggedInUserId = null;
     private static String loggedInUserName = null;
+
+    EcommerceApplication(CartController cartController) {
+        this.cartController = cartController;
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(EcommerceApplication.class, args);
@@ -49,6 +56,7 @@ public class EcommerceApplication implements CommandLineRunner {
 
             while (isRunning) {
                 System.out.println("\n1. Sign Up\n2. Login\n3. Exit");
+                System.out.print("Enter Your Choice: ");
                 int choice = scanner.nextInt();
                 scanner.nextLine();
 
@@ -98,8 +106,8 @@ public class EcommerceApplication implements CommandLineRunner {
         } while (!validPassword);
 
         User newUser = new User(System.currentTimeMillis(), email, name, password);
-        User response = restTemplate.postForObject(BASE_URL + "/users/signup", newUser, User.class);
-        System.out.println("User registered: " + response);
+        restTemplate.postForObject(BASE_URL + "/users/signup", newUser, User.class);
+        System.out.println("User registered Successfully");
     }
 
     private static boolean isValidEmail(String email) {
@@ -142,7 +150,7 @@ public class EcommerceApplication implements CommandLineRunner {
                 System.out.println("Invalid credentials!");
             }
         }  catch (HttpClientErrorException e) {
-            System.out.println("Login failed: " + e.getMessage());  // More specific error
+            System.out.println("Login failed: " + e.getMessage()); 
         } catch (Exception e) {
             System.out.println("An unexpected error occurred during login: " + e.getMessage());
         }
@@ -150,6 +158,7 @@ public class EcommerceApplication implements CommandLineRunner {
 
     private static void showUserMenu() {
         System.out.println("\n1. View Categories\n2. View Products\n3. Place Order\n4. View Order History\n5. Manage Cart\n6. Logout");
+        System.out.print("Enter Your Choice: ");
         int userChoice = scanner.nextInt();
         scanner.nextLine();
 
@@ -162,6 +171,7 @@ public class EcommerceApplication implements CommandLineRunner {
             case 6 -> {
                 loggedInUserId = null;
                 loggedInUserName = null;
+                setSecurityContext(null);
                 System.out.println("Logged out successfully!");
             }
             default -> System.out.println("Invalid choice, try again!");
@@ -247,7 +257,7 @@ public class EcommerceApplication implements CommandLineRunner {
 
         try {
             Order newOrder = restTemplate.postForObject(
-                    BASE_URL + "/orders/?userId=" + loggedInUserId + "&productId=" + productId, null, Order.class);
+                    BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + productId, null, Order.class);
             System.out.println("Order placed: " + newOrder);
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
@@ -292,21 +302,26 @@ public class EcommerceApplication implements CommandLineRunner {
     // --------------- Cart Operations ---------------
 
     private static void manageCart() {
-        System.out.println("\n1. Add to Cart\n2. View Cart\n3. Remove from Cart\n4. Place Order from Cart\n5. Back to Main Menu");
+        System.out.println("\n1. Add Product to Cart\n2. View Cart\n3. Remove Product from Cart\n4. Place Order from Cart\n5. Back to Main Menu");
+        System.out.print("Enter Your Choice: ");
         int choice = scanner.nextInt();
         scanner.nextLine();
 
         switch (choice) {
-            case 1 -> addToCart();
+            case 1 -> addProductToCart();
             case 2 -> viewCart();
-            case 3 -> removeFromCart();
-            case 4 -> placeOrderFromCart(); // New case
-            case 5 -> showUserMenu(); // Back to main menu
+            case 3 -> removeProductFromCart();
+            case 4 -> placeOrderFromCart();
+            case 5 -> showUserMenu(); 
             default -> System.out.println("Invalid choice!");
         }
+        if(choice!=5){
+            manageCart();
+        }
+
     }
 
-    private static void addToCart() {
+    private static void addProductToCart() {
         System.out.print("Enter product ID: ");
         Long productId = scanner.nextLong();
         System.out.print("Enter quantity: ");
@@ -351,13 +366,13 @@ public class EcommerceApplication implements CommandLineRunner {
         }
     }
 
-    private static void removeFromCart() {
+    private static void removeProductFromCart() {
         System.out.print("Enter product ID to remove: ");
         Long productId = scanner.nextLong();
         scanner.nextLine();
 
         try {
-            restTemplate.delete(BASE_URL + "/cart/remove?userId=" + loggedInUserId + "&productId=" + productId);
+            restTemplate.delete(BASE_URL + "/cart/delete?userId=" + loggedInUserId + "&productId=" + productId);
             System.out.println("Item removed from cart (if it existed).");
         } catch (Exception e) {
             System.out.println("Error removing from cart: " + e.getMessage());
@@ -384,19 +399,20 @@ public class EcommerceApplication implements CommandLineRunner {
             }
 
             for (CartItem item : cart.getItems()) {
-                try {
-                    Order newOrder = restTemplate.postForObject(
-                            BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + item.getProductId(), null, Order.class);
-                    System.out.println("Order placed for product ID " + item.getProductId() + ": " + newOrder);
-                } catch (HttpClientErrorException e) {
-                    System.out.println("Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
-                    // Consider whether to continue placing orders for other items if one fails
-                } catch (Exception e) {
-                    System.out.println("Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
+                for(int quantityIndex=1;quantityIndex<=item.getQuantity();quantityIndex++){
+                    try {
+                        Order newOrder = restTemplate.postForObject(
+                                BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + item.getProductId(), null, Order.class);
+                        System.out.println("Order placed for product ID " + item.getProductId() + ": " + newOrder);
+                    } catch (HttpClientErrorException e) {
+                        System.out.println("Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
+                    } catch (Exception e) {
+                        System.out.println("Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
+                    }   
                 }
+                
             }
 
-            // Clear the cart after placing the order
             clearCart();
 
             System.out.println("Order placed successfully for all items in cart!");
