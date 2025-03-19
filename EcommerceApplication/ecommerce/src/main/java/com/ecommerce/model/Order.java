@@ -2,7 +2,11 @@ package com.ecommerce.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Currency;
+import java.util.Locale;
 
 @Entity
 @Table(name = "orders")
@@ -102,6 +106,17 @@ public class Order {
 
     public void setExpectedDelivery(LocalDateTime expectedDelivery) {
         this.expectedDelivery = expectedDelivery;
+    }
+
+    public String formatOrderDetails() {
+        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
+        currencyFormat.setCurrency(Currency.getInstance("INR"));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return String.format("Product Name: %s, Price: %s, Order Date: %s, Expected Delivery: %s",
+                product != null ? product.getName() : "N/A",
+                currencyFormat.format(price != null ? price : BigDecimal.ZERO),
+                orderDate != null ? formatter.format(orderDate) : "N/A",
+                expectedDelivery != null ? formatter.format(expectedDelivery) : "N/A");
     }
 
     @Override

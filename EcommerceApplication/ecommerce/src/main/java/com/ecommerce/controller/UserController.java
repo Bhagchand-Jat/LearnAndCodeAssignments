@@ -1,11 +1,8 @@
 package com.ecommerce.controller;
 
 import java.util.Optional;
-import java.util.logging.Logger;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -17,19 +14,16 @@ import com.ecommerce.repository.UserRepository;
 @RequestMapping("/api/users")
 public class UserController {
 
-    private final CartController cartController;
-	private final Logger logger = Logger.getLogger(UserController.class.getName());
 	@Autowired
 	private UserRepository userRepository;
 
 	private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    UserController(CartController cartController) {
-        this.cartController = cartController;
-    }
-
 	@PostMapping("/signup")
 	public ResponseEntity<User> signUp(@RequestBody User user) {
+		if (userRepository.existsByEmail(user.getEmail())) {
+			return new ResponseEntity<>(HttpStatus.CONFLICT);
+		}
 		user.setPassword(passwordEncoder.encode(user.getPassword()));
 		return new ResponseEntity<>(userRepository.save(user),HttpStatus.CREATED);
 	}

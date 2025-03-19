@@ -1,6 +1,5 @@
 package com.ecommerce;
 
-import com.ecommerce.controller.CartController;
 import com.ecommerce.model.Cart;
 import com.ecommerce.model.CartItem;
 import com.ecommerce.model.Category;
@@ -11,6 +10,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -31,17 +31,12 @@ import java.util.stream.Collectors;
 @SpringBootApplication
 public class EcommerceApplication implements CommandLineRunner {
 
-    private final CartController cartController;
 
-    private static final String BASE_URL = "http://localhost:8080/api"; 
+    private static final String BASE_URL = "http://localhost:8080/api";
     private static final RestTemplate restTemplate = new RestTemplate();
     private static final Scanner scanner = new Scanner(System.in);
     private static Long loggedInUserId = null;
     private static String loggedInUserName = null;
-
-    EcommerceApplication(CartController cartController) {
-        this.cartController = cartController;
-    }
 
     public static void main(String[] args) {
         SpringApplication.run(EcommerceApplication.class, args);
@@ -49,8 +44,8 @@ public class EcommerceApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // addDummyCategories();
-        // addDummyProducts();
+        // addCategories();
+        // addProducts();
         try (scanner) {
             boolean isRunning = true;
 
@@ -66,6 +61,7 @@ public class EcommerceApplication implements CommandLineRunner {
                     case 3 -> {
                         isRunning = false;
                         System.out.println("Exiting Application");
+                        System.exit(0);
                     }
                     default -> System.out.println("Invalid choice, try again!");
                 }
@@ -106,11 +102,32 @@ public class EcommerceApplication implements CommandLineRunner {
         } while (!validPassword);
 
         User newUser = new User(System.currentTimeMillis(), email, name, password);
-        restTemplate.postForObject(BASE_URL + "/users/signup", newUser, User.class);
-        System.out.println("User registered Successfully");
+        try {
+        ResponseEntity<User> response = restTemplate.postForEntity(BASE_URL + "/users/signup", newUser, User.class);
+        
+        if (response.getStatusCode() == HttpStatus.CREATED) {
+            System.out.println("User registered successfully");
+        }
+        
+    } catch (HttpClientErrorException e) {
+        if (e.getStatusCode() == HttpStatus.CONFLICT) {
+            System.out.println("Registration failed: Email is already in use. Please try a different email.");
+        } else {
+            System.out.println("Registration failed: " + e.getMessage());
+        }
+    } catch (Exception e) {
+        System.out.println("An error occurred during registration: " + e.getMessage());
+    }
     }
 
     private static boolean isValidEmail(String email) {
+        // Define a regular expression (regex) pattern for validating email addresses.
+        // The pattern checks for:
+        // - One or more word characters, hyphens, or dots before the '@' symbol.
+        // - A domain name consisting of one or more word characters or hyphens followed
+        // by a dot.
+        // - A top-level domain (TLD) that is 2 to 4 characters long (e.g., .com, .org,
+        // .info).
         String regex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(email);
@@ -121,7 +138,6 @@ public class EcommerceApplication implements CommandLineRunner {
         return password.length() >= 8;
     }
 
-
     private static void login() {
         System.out.print("Enter email: ");
         String email = scanner.nextLine();
@@ -130,7 +146,8 @@ public class EcommerceApplication implements CommandLineRunner {
 
         try {
             String loginResponse = restTemplate
-                    .postForObject(BASE_URL + "/users/login?email=" + email + "&password=" + password, null, String.class);
+                    .postForObject(BASE_URL + "/users/login?email=" + email + "&password=" + password, null,
+                            String.class);
 
             if ("Login successful".equals(loginResponse)) {
                 setSecurityContext(email);
@@ -149,15 +166,16 @@ public class EcommerceApplication implements CommandLineRunner {
             } else {
                 System.out.println("Invalid credentials!");
             }
-        }  catch (HttpClientErrorException e) {
-            System.out.println("Login failed: " + e.getMessage()); 
+        } catch (HttpClientErrorException e) {
+            System.out.println("Login failed: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("An unexpected error occurred during login: " + e.getMessage());
         }
     }
 
     private static void showUserMenu() {
-        System.out.println("\n1. View Categories\n2. View Products\n3. Place Order\n4. View Order History\n5. Manage Cart\n6. Logout");
+        System.out.println(
+                "\n1. View Categories\n2. View Products\n3. Place Order\n4. View Order History\n5. Manage Cart\n6. Logout");
         System.out.print("Enter Your Choice: ");
         int userChoice = scanner.nextInt();
         scanner.nextLine();
@@ -209,11 +227,11 @@ public class EcommerceApplication implements CommandLineRunner {
     private static void viewProducts() {
         List<Product> products = Arrays.asList(restTemplate.getForObject(BASE_URL + "/products", Product[].class));
         System.out.println("Products: ");
-        if(products != null && !products.isEmpty()){
+        if (products != null && !products.isEmpty()) {
             for (Product product : products) {
-                System.out.println(formatProduct(product));
+                System.out.println(product.formatProductDetails());
             }
-        }else{
+        } else {
             System.out.println("No Products found");
         }
 
@@ -228,27 +246,19 @@ public class EcommerceApplication implements CommandLineRunner {
         }
 
         List<Product> filteredProducts = Arrays.stream(products)
-            .filter(product -> product.getCategory() != null && product.getCategory().getId() != null && Objects.equals(product.getCategory().getId(), selectedCategory.getId()))
-            .collect(Collectors.toList());
-
+                .filter(product -> product.getCategory() != null && product.getCategory().getId() != null
+                        && Objects.equals(product.getCategory().getId(), selectedCategory.getId()))
+                .collect(Collectors.toList());
 
         if (filteredProducts.isEmpty()) {
             System.out.println("No products found in the " + selectedCategory.getName() + " category.");
         } else {
             System.out.println("Products in the " + selectedCategory.getName() + " category:");
             for (Product product : filteredProducts) {
-                System.out.println(formatProduct(product));
+                System.out.println(product.formatProductDetails());
             }
         }
     }
-
-    private static String formatProduct(Product product) {
-        return "Product ID: " + product.getId() +
-                ", Name: " + product.getName() +
-                ", Price: " + product.getPrice() +
-                ", Category: " + (product.getCategory() != null ? product.getCategory().getName() : "N/A");
-    }
-
 
     private static void placeOrder() {
         System.out.print("Enter product ID to order: ");
@@ -258,7 +268,9 @@ public class EcommerceApplication implements CommandLineRunner {
         try {
             Order newOrder = restTemplate.postForObject(
                     BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + productId, null, Order.class);
-            System.out.println("Order placed: " + newOrder);
+                    if(newOrder!=null){
+                        System.out.println("Order placed successfully. \n" + newOrder.formatOrderDetails());
+                    }   
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
                 System.out.println("Error: Product with ID " + productId + " not found.");
@@ -276,7 +288,7 @@ public class EcommerceApplication implements CommandLineRunner {
             if (orders != null && orders.length > 0) {
                 System.out.println("Order History:");
                 for (Order order : orders) {
-                    System.out.println(formatOrder(order));
+                    System.out.println(order.formatOrderDetails());
                 }
             } else {
                 System.out.println("No order history found.");
@@ -292,17 +304,11 @@ public class EcommerceApplication implements CommandLineRunner {
         }
     }
 
-    private static String formatOrder(Order order) {
-        return "Order ID: " + order.getId() +
-               ", Product: " + order.getProduct().getName() +
-               ", Price: " + order.getPrice() +
-               ", Order Date: " + order.getOrderDate();
-    }
-
     // --------------- Cart Operations ---------------
 
     private static void manageCart() {
-        System.out.println("\n1. Add Product to Cart\n2. View Cart\n3. Remove Product from Cart\n4. Place Order from Cart\n5. Back to Main Menu");
+        System.out.println(
+                "\n1. Add Product to Cart\n2. View Cart\n3. Remove Product from Cart\n4. Place Order from Cart\n5. Back to Main Menu");
         System.out.print("Enter Your Choice: ");
         int choice = scanner.nextInt();
         scanner.nextLine();
@@ -312,10 +318,10 @@ public class EcommerceApplication implements CommandLineRunner {
             case 2 -> viewCart();
             case 3 -> removeProductFromCart();
             case 4 -> placeOrderFromCart();
-            case 5 -> showUserMenu(); 
+            case 5 -> showUserMenu();
             default -> System.out.println("Invalid choice!");
         }
-        if(choice!=5){
+        if (choice != 5) {
             manageCart();
         }
 
@@ -353,9 +359,7 @@ public class EcommerceApplication implements CommandLineRunner {
             if (cart != null && cart.getItems() != null && !cart.getItems().isEmpty()) {
                 System.out.println("Your Cart:");
                 for (CartItem item : cart.getItems()) {
-                    System.out.println("  Product ID: " + item.getProductId() +
-                                       ", Quantity: " + item.getQuantity() +
-                                       ", Price: " + item.getPrice());
+                    System.out.println(item.formatCartItemDetails());
                 }
                 System.out.println("  Total Price: " + cart.getTotalPrice());
             } else {
@@ -388,8 +392,8 @@ public class EcommerceApplication implements CommandLineRunner {
                 return;
             }
 
-              BigDecimal totalPrice = cart.getTotalPrice();
-            System.out.println("Total amount:" +totalPrice);
+            BigDecimal totalPrice = cart.getTotalPrice();
+            System.out.println("Total amount:" + totalPrice);
 
             System.out.print("Confirm order (y/n): ");
             String confirmation = scanner.nextLine();
@@ -399,18 +403,23 @@ public class EcommerceApplication implements CommandLineRunner {
             }
 
             for (CartItem item : cart.getItems()) {
-                for(int quantityIndex=1;quantityIndex<=item.getQuantity();quantityIndex++){
+                for (int quantityIndex = 1; quantityIndex <= item.getQuantity(); quantityIndex++) {
                     try {
                         Order newOrder = restTemplate.postForObject(
-                                BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + item.getProductId(), null, Order.class);
-                        System.out.println("Order placed for product ID " + item.getProductId() + ": " + newOrder);
+                                BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + item.getProductId(),
+                                null, Order.class);
+                                if(newOrder!=null){
+                                    System.out.println("Order placed for product ID " + item.getProductId() + ": " + newOrder.formatOrderDetails());
+                                }
                     } catch (HttpClientErrorException e) {
-                        System.out.println("Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
+                        System.out.println(
+                                "Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
                     } catch (Exception e) {
-                        System.out.println("Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
-                    }   
+                        System.out.println(
+                                "Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
+                    }
                 }
-                
+
             }
 
             clearCart();
@@ -424,7 +433,7 @@ public class EcommerceApplication implements CommandLineRunner {
         }
     }
 
-     private static void clearCart() {
+    private static void clearCart() {
         try {
             restTemplate.delete(BASE_URL + "/cart/clear/" + loggedInUserId);
             System.out.println("Cart cleared successfully!");
@@ -434,7 +443,6 @@ public class EcommerceApplication implements CommandLineRunner {
             System.out.println("Error clearing cart: " + e.getMessage());
         }
     }
-
 
     private static void setSecurityContext(String username) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
@@ -446,7 +454,7 @@ public class EcommerceApplication implements CommandLineRunner {
         SecurityContextHolder.setContext(context);
     }
 
-    private void addDummyCategories() {
+    private void addCategories() {
         Category electronics = new Category(null, "Electronics");
         Category clothing = new Category(null, "Clothing");
         Category books = new Category(null, "Books");
@@ -459,7 +467,7 @@ public class EcommerceApplication implements CommandLineRunner {
         System.out.println("Dummy categories added successfully!");
     }
 
-    private void addDummyProducts() {
+    private void addProducts() {
         Category[] categories = restTemplate.getForObject(BASE_URL + "/categories", Category[].class);
 
         if (categories == null || categories.length == 0) {
@@ -481,8 +489,7 @@ public class EcommerceApplication implements CommandLineRunner {
 
                 new Product(null, "Novel", BigDecimal.valueOf(500), categoryMap.get("Books")),
                 new Product(null, "Science Textbook", BigDecimal.valueOf(1200), categoryMap.get("Books")),
-                new Product(null, "History Guide", BigDecimal.valueOf(900), categoryMap.get("Books"))
-        );
+                new Product(null, "History Guide", BigDecimal.valueOf(900), categoryMap.get("Books")));
 
         for (Product product : products) {
             if (product.getCategory() != null) {

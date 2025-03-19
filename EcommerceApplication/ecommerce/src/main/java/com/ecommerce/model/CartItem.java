@@ -1,6 +1,9 @@
 package com.ecommerce.model;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.Currency;
+import java.util.Locale;
 
 public class CartItem {
     private Long productId;
@@ -8,7 +11,8 @@ public class CartItem {
     private BigDecimal price;
 
     // Constructor
-    public CartItem() {}
+    public CartItem() {
+    }
 
     public CartItem(Long productId, int quantity, BigDecimal price) {
         this.productId = productId;
@@ -39,6 +43,15 @@ public class CartItem {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public String formatCartItemDetails() {
+        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
+        currencyFormat.setCurrency(Currency.getInstance("INR"));
+        return String.format("Product ID: %d, Quantity: %s, Price: %s",
+                productId != null ? productId : 0L,
+                quantity,
+                currencyFormat.format(price != null ? price : BigDecimal.ZERO));
     }
 
     // toString method

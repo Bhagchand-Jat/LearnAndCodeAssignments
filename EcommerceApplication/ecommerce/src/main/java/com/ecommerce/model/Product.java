@@ -2,6 +2,9 @@ package com.ecommerce.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.Currency;
+import java.util.Locale;
 
 @Entity
 public class Product {
@@ -55,6 +58,16 @@ public class Product {
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+
+    public String formatProductDetails() {
+        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
+        currencyFormat.setCurrency(Currency.getInstance("INR"));
+        return String.format("Product ID: %d, Name: %s, Price: %s, Category: %s",
+                id != null ? id : 0L,
+                name != null ? name : "N/A",
+                currencyFormat.format(price != null ? price : BigDecimal.ZERO),
+                category != null ? category.getName() : "N/A");
     }
 
     @Override
