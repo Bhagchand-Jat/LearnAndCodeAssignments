@@ -21,6 +21,7 @@ public class UserController {
 
 	@PostMapping("/signup")
 	public ResponseEntity<User> signUp(@RequestBody User user) {
+		user.setId(System.currentTimeMillis());
 		if (userRepository.existsByEmail(user.getEmail())) {
 			return new ResponseEntity<>(HttpStatus.CONFLICT);
 		}

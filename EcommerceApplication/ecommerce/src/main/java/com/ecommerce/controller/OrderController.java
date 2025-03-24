@@ -35,7 +35,7 @@ public class OrderController {
 
 	        if (user.isPresent()) {
 	        	 if (product.isPresent()) {
-	        		 Order order = new Order(product.get().getPrice(),LocalDateTime.now(), LocalDateTime.now().plusDays(5), user.get(), product.get());
+	        		 Order order = new Order(product.get().getPrice(), LocalDateTime.now().plusDays(5), user.get(), product.get());
 	        		 return new ResponseEntity<>(orderRepository.save(order), HttpStatus.CREATED);
 	        	 } else {
 	        		 return new ResponseEntity<>(HttpStatus.NOT_FOUND);

@@ -336,10 +336,7 @@ public class EcommerceApplication implements CommandLineRunner {
 
         Product product = restTemplate.getForObject(BASE_URL + "/products/" + productId, Product.class);
         if (product != null) {
-            CartItem item = new CartItem();
-            item.setProductId(productId);
-            item.setQuantity(quantity);
-            item.setPrice(product.getPrice());
+            CartItem item = new CartItem(productId,quantity,product.getPrice());
 
             try {
                 String response = restTemplate.postForObject(

@@ -10,17 +10,12 @@ public class CartItem {
     private int quantity;
     private BigDecimal price;
 
-    // Constructor
-    public CartItem() {
-    }
-
     public CartItem(Long productId, int quantity, BigDecimal price) {
         this.productId = productId;
         this.quantity = quantity;
         this.price = price;
     }
 
-    // Getters and Setters
     public Long getProductId() {
         return productId;
     }
@@ -54,7 +49,6 @@ public class CartItem {
                 currencyFormat.format(price != null ? price : BigDecimal.ZERO));
     }
 
-    // toString method
     @Override
     public String toString() {
         return "CartItem{" +

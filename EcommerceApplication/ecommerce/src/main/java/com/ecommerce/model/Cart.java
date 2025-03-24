@@ -9,14 +9,12 @@ public class Cart {
     private List<CartItem> items = new ArrayList<>();
     private BigDecimal totalPrice = BigDecimal.ZERO;
 
-    // Constructor
     public Cart() {}
 
     public Cart(Long userId) {
         this.userId = userId;
     }
 
-    // Getters and Setters
     public Long getUserId() {
         return userId;
     }
@@ -41,7 +39,6 @@ public class Cart {
         this.totalPrice = totalPrice;
     }
 
-    // toString method
     @Override
     public String toString() {
         return "Cart{" +

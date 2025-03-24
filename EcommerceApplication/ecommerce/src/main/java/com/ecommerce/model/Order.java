@@ -28,44 +28,17 @@ public class Order {
     public Order() {
     }
 
-    public Order(Long id, BigDecimal price, LocalDateTime orderDate, LocalDateTime expectedDelivery, User user,
+    public Order(BigDecimal price ,LocalDateTime expectedDelivery, User user,
             Product product) {
-        this.id = id;
         this.price = price;
-        this.orderDate = orderDate;
+        this.orderDate = LocalDateTime.now();
         this.expectedDelivery = expectedDelivery;
         this.user = user;
         this.product = product;
-    }
-
-    public Order(BigDecimal price, LocalDateTime orderDate, LocalDateTime expectedDelivery, User user,
-            Product product) {
-        this.price = price;
-        this.orderDate = orderDate;
-        this.expectedDelivery = expectedDelivery;
-        this.user = user;
-        this.product = product;
-    }
-
-    public Order(BigDecimal price, LocalDateTime orderDate, LocalDateTime expectedDelivery) {
-        this.price = price;
-        this.orderDate = orderDate;
-        this.expectedDelivery = expectedDelivery;
-    }
-
-    public Order(Long id, BigDecimal price, LocalDateTime orderDate, LocalDateTime expectedDelivery) {
-        this.id = id;
-        this.price = price;
-        this.orderDate = orderDate;
-        this.expectedDelivery = expectedDelivery;
     }
 
     public Long getId() {
         return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public User getUser() {
@@ -94,10 +67,6 @@ public class Order {
 
     public LocalDateTime getOrderDate() {
         return orderDate;
-    }
-
-    public void setOrderDate(LocalDateTime orderDate) {
-        this.orderDate = orderDate;
     }
 
     public LocalDateTime getExpectedDelivery() {
