@@ -1,3 +1,4 @@
+package employee;
 /* Class Employee {
 
 string name;
