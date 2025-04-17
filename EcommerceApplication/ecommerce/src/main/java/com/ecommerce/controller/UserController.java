@@ -30,12 +30,13 @@ public class UserController {
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<String> login(@RequestParam String email, @RequestParam String password) {
+	public ResponseEntity<User> login(@RequestParam String email, @RequestParam String password) {
 		Optional<User> user = userRepository.findByEmail(email);
+		
 		if(user.isPresent() && passwordEncoder.matches(password, user.get().getPassword())){
-			return new ResponseEntity<>(  "Login successful",HttpStatus.OK);
+			return new ResponseEntity<>(  user.get(),HttpStatus.OK);
 		}
-		return new ResponseEntity<>("Invalid credentials",HttpStatus.NOT_FOUND);
+		return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 	}
 
 	@GetMapping

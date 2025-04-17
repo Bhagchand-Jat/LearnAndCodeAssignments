@@ -27,7 +27,8 @@ public class CartController {
                     carts.add(newCart);
                     return newCart;
                 });
-                CartItem cartItem= cart.getItems().stream().filter(cartItemData->item.getProductId()==cartItemData.getProductId()).findFirst().orElse(null);
+        CartItem cartItem = cart.getItems().stream()
+                .filter(cartItemData -> item.getProductId() == cartItemData.getProductId()).findFirst().orElse(null);
         if (cartItem == null) {
             cart.getItems().add(item);
         } else {
