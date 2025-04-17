@@ -7,9 +7,9 @@ import java.net.URL;
 
 public class TumblrApiClient {
     public static String buildApiUrl(String blogName, int start, int end) {
-        int num = end - start + 1;
+        int totalPostsRequired = end - start + 1;
         return String.format("https://%s.tumblr.com/api/read/json?type=photo&num=%d&start=%d",
-                              blogName, num, start - 1);
+                              blogName, totalPostsRequired, start - 1);
     }
 
     public static String fetchApiResponse(String apiUrl) throws Exception {
