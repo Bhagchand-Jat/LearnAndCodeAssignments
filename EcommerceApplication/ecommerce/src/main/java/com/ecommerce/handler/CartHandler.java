@@ -1,9 +1,9 @@
 package com.ecommerce.handler;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 import java.util.Scanner;
 
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.ecommerce.model.Cart;
@@ -24,38 +24,62 @@ public class CartHandler {
         this.loggedInUserId = loggedInUserId;
     }
 
-    public void addProductToCart() {
-        System.out.print("Enter product ID: ");
-        Long productId = scanner.nextLong();
-        System.out.print("Enter quantity: ");
-        int quantity = scanner.nextInt();
-        scanner.nextLine();
-
-        Product product = restTemplate.getForObject(BASE_URL + "/products/" + productId, Product.class);
-        if (product != null) {
-            CartItem item = new CartItem(productId, quantity, product.getPrice());
-
-            try {
-                String response = restTemplate.postForObject(
-                        BASE_URL + "/cart/add?userId=" + loggedInUserId, item, String.class);
-                System.out.println(response);
-            } catch (Exception e) {
-                System.out.println("Error adding to cart: " + e.getMessage());
+    public void manageCart() {
+        while (true) {
+            displayCartMenu();
+            int choice = getUserChoice();
+            switch (choice) {
+                case 1 -> addProductToCart();
+                case 2 -> viewCart();
+                case 3 -> removeProductFromCart();
+                case 4 -> placeOrderFromCart();
+                case 5 -> {
+                    return;
+                }
+                default -> System.out.println("Invalid choice!");
             }
-        } else {
-            System.out.println("Product not found!");
         }
     }
 
-    public void viewCart() {
+    private void displayCartMenu() {
+        System.out.println(
+                "\n1. Add Product to Cart\n2. View Cart\n3. Remove Product from Cart\n4. Place Order from Cart\n5. Back to Main Menu");
+        System.out.print("Enter Your Choice: ");
+    }
+
+    private int getUserChoice() {
+        int choice = scanner.nextInt();
+        scanner.nextLine();
+        return choice;
+    }
+
+    private void addProductToCart() {
+        Long productId = promptProductId();
+        int quantity = promptQuantity();
+
+        Optional<Product> productOpt = fetchProduct(productId);
+        if (productOpt.isEmpty()) {
+            System.out.println("Product not found!");
+            return;
+        }
+
+        Product product = productOpt.get();
+        CartItem item = new CartItem(productId, quantity, product.getPrice());
+
         try {
-            Cart cart = restTemplate.getForObject(BASE_URL + "/cart/view/" + loggedInUserId, Cart.class);
-            if (cart != null && cart.getItems() != null && !cart.getItems().isEmpty()) {
-                System.out.println("Your Cart:");
-                for (CartItem item : cart.getItems()) {
-                    System.out.println(item.formatCartItemDetails());
-                }
-                System.out.println("  Total Price: " + cart.getTotalPrice());
+            String response = restTemplate.postForObject(
+                    BASE_URL + "/cart/add?userId=" + loggedInUserId, item, String.class);
+            System.out.println(response);
+        } catch (Exception e) {
+            System.out.println("Error adding to cart: " + e.getMessage());
+        }
+    }
+
+    private void viewCart() {
+        try {
+            Optional<Cart> cartOpt = fetchCart();
+            if (cartOpt.isPresent() && !cartOpt.get().getItems().isEmpty()) {
+                displayCart(cartOpt.get());
             } else {
                 System.out.println("Your cart is empty.");
             }
@@ -64,11 +88,8 @@ public class CartHandler {
         }
     }
 
-    public void removeProductFromCart() {
-        System.out.print("Enter product ID to remove: ");
-        Long productId = scanner.nextLong();
-        scanner.nextLine();
-
+    private void removeProductFromCart() {
+        Long productId = promptProductId();
         try {
             restTemplate.delete(BASE_URL + "/cart/delete?userId=" + loggedInUserId + "&productId=" + productId);
             System.out.println("Item removed from cart (if it existed).");
@@ -77,52 +98,22 @@ public class CartHandler {
         }
     }
 
-    public void placeOrderFromCart() {
+    private void placeOrderFromCart() {
         try {
-            Cart cart = restTemplate.getForObject(BASE_URL + "/cart/view/" + loggedInUserId, Cart.class);
-
-            if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
+            Optional<Cart> cartOpt = fetchCart();
+            if (cartOpt.isEmpty() || cartOpt.get().getItems().isEmpty()) {
                 System.out.println("Your cart is empty. Add items before placing an order.");
                 return;
             }
 
-            BigDecimal totalPrice = cart.getTotalPrice();
-            System.out.println("Total amount:" + totalPrice);
+            Cart cart = cartOpt.get();
 
-            System.out.print("Confirm order (y/n): ");
-            String confirmation = scanner.nextLine();
-            if (!confirmation.equalsIgnoreCase("y")) {
-                System.out.println("Order cancelled.");
-                return;
-            }
+            if (!confirmOrder(cart.getTotalPrice())) return;
 
-            for (CartItem item : cart.getItems()) {
-                for (int quantityIndex = 1; quantityIndex <= item.getQuantity(); quantityIndex++) {
-                    try {
-                        Order newOrder = restTemplate.postForObject(
-                                BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + item.getProductId(),
-                                null, Order.class);
-                        if (newOrder != null) {
-                            System.out.println("Order placed for product ID " + item.getProductId() + ": "
-                                    + newOrder.formatOrderDetails());
-                        }
-                    } catch (HttpClientErrorException e) {
-                        System.out.println(
-                                "Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
-                    } catch (Exception e) {
-                        System.out.println(
-                                "Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
-                    }
-                }
-
-            }
-
+            placeOrdersForCartItems(cart);
             clearCart();
-
             System.out.println("Order placed successfully for all items in cart!");
 
-        } catch (HttpClientErrorException e) {
-            System.out.println("Error retrieving cart: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Error placing order from cart: " + e.getMessage());
         }
@@ -132,33 +123,74 @@ public class CartHandler {
         try {
             restTemplate.delete(BASE_URL + "/cart/clear/" + loggedInUserId);
             System.out.println("Cart cleared successfully!");
-        } catch (HttpClientErrorException e) {
-            System.out.println("Error clearing cart: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Error clearing cart: " + e.getMessage());
         }
     }
 
-    
-    public void manageCart() {
-        System.out.println(
-                "\n1. Add Product to Cart\n2. View Cart\n3. Remove Product from Cart\n4. Place Order from Cart\n5. Back to Main Menu");
-        System.out.print("Enter Your Choice: ");
-        int choice = scanner.nextInt();
-        scanner.nextLine();
 
-        switch (choice) {
-            case 1 -> addProductToCart();
-            case 2 -> viewCart();
-            case 3 -> removeProductFromCart();
-            case 4 -> placeOrderFromCart();
-            case 5 -> System.out.println();
-            default -> System.out.println("Invalid choice!");
-        }
-        if (choice != 5) {
-            manageCart();
-        }
-
+    private Long promptProductId() {
+        System.out.print("Enter product ID: ");
+        return scanner.nextLong();
     }
 
+    private int promptQuantity() {
+        System.out.print("Enter quantity: ");
+        int qty = scanner.nextInt();
+        scanner.nextLine(); 
+        return qty;
+    }
+
+    private Optional<Product> fetchProduct(Long productId) {
+        try {
+            Product product = restTemplate.getForObject(BASE_URL + "/products/" + productId, Product.class);
+            return Optional.ofNullable(product);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<Cart> fetchCart() {
+        try {
+            Cart cart = restTemplate.getForObject(BASE_URL + "/cart/view/" + loggedInUserId, Cart.class);
+            return Optional.ofNullable(cart);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private void displayCart(Cart cart) {
+        System.out.println("Your Cart:");
+        for (CartItem item : cart.getItems()) {
+            System.out.println(item.formatCartItemDetails());
+        }
+        System.out.println("  Total Price: " + cart.getTotalPrice());
+    }
+
+    private boolean confirmOrder(BigDecimal totalPrice) {
+        System.out.println("Total amount: " + totalPrice);
+        System.out.print("Confirm order (y/n): ");
+        String confirmation = scanner.nextLine();
+        if (!confirmation.equalsIgnoreCase("y")) {
+            System.out.println("Order cancelled.");
+            return false;
+        }
+        return true;
+    }
+
+    private void placeOrdersForCartItems(Cart cart) {
+        for (CartItem item : cart.getItems()) {
+            for (int i = 0; i < item.getQuantity(); i++) {
+                try {
+                    Order order = restTemplate.postForObject(
+                            BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + item.getProductId(),
+                            null, Order.class);
+                    Optional.ofNullable(order).ifPresent(o -> System.out.println("Order placed for product ID " +
+                            item.getProductId() + ": " + o.formatOrderDetails()));
+                } catch (Exception e) {
+                    System.out.println("Error placing order for product ID " + item.getProductId() + ": " + e.getMessage());
+                }
+            }
+        }
+    }
 }

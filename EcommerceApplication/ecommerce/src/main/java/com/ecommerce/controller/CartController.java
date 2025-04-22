@@ -9,81 +9,114 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/cart")
 public class CartController {
 
-    private static List<Cart> carts = new ArrayList<>();
+    private static final List<Cart> carts = new ArrayList<>();
 
     @PostMapping("/add")
-    public ResponseEntity<String> addToCart(@RequestParam Long userId, @RequestBody CartItem item) {
-        Cart cart = carts.stream()
-                .filter(c -> c.getUserId().equals(userId))
-                .findFirst()
-                .orElseGet(() -> {
-                    Cart newCart = new Cart();
-                    newCart.setUserId(userId);
-                    carts.add(newCart);
-                    return newCart;
-                });
-        CartItem cartItem = cart.getItems().stream()
-                .filter(cartItemData -> item.getProductId() == cartItemData.getProductId()).findFirst().orElse(null);
-        if (cartItem == null) {
-            cart.getItems().add(item);
-        } else {
-            item.setQuantity(cartItem.getQuantity() + item.getQuantity());
-            cart.getItems().set(cart.getItems().indexOf(cartItem), item);
-            cart.setTotalPrice(cart.getTotalPrice()
-                    .subtract(cartItem.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()))));
-        }
-
-        cart.setTotalPrice(cart.getTotalPrice().add(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()))));
-        return new ResponseEntity<>("Product added to cart successfully!", HttpStatus.CREATED);
+    public ResponseEntity<String> addToCart(@RequestParam Long userId, @RequestBody CartItem newItem) {
+        Cart cart = getOrCreateCart(userId);
+        addItemToCart(cart, newItem);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Product added to cart successfully!");
     }
 
     @GetMapping("/view/{userId}")
     public ResponseEntity<Cart> viewCart(@PathVariable Long userId) {
-        return new ResponseEntity<>(carts.stream()
-                .filter(cart -> cart.getUserId().equals(userId))
-                .findFirst()
-                .orElse(null), HttpStatus.OK);
+        Optional<Cart> cart = findCartByUserId(userId);
+        if (cart.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        return ResponseEntity.ok(cart.get());
     }
 
     @DeleteMapping("/clear/{userId}")
-    public ResponseEntity<String> removeFromCart(@PathVariable Long userId) {
-        Cart cart = carts.stream()
-                .filter(c -> c.getUserId().equals(userId))
-                .findFirst()
-                .orElse(null);
-
-        if (cart != null) {
-            carts.set(carts.indexOf(cart), new Cart(userId));
-            return new ResponseEntity<>("Items removed from cart successfully!", HttpStatus.OK);
+    public ResponseEntity<String> clearCart(@PathVariable Long userId) {
+        if (!replaceCartWithEmpty(userId)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Cart not found!");
         }
-        return new ResponseEntity<>("Cart not found!", HttpStatus.NOT_FOUND);
+        return ResponseEntity.ok("Items removed from cart successfully!");
     }
 
     @DeleteMapping("/delete")
     public ResponseEntity<String> deleteProductFromCart(@RequestParam Long userId, @RequestParam Long productId) {
-        Cart cart = carts.stream()
-                .filter(cartFilter -> cartFilter.getUserId().equals(userId))
-                .findFirst()
-                .orElse(null);
-
-        if (cart != null) {
-            CartItem cartItem = cart.getItems().stream().filter(item -> item.getProductId() == productId).findFirst()
-                    .orElse(null);
-            if (cartItem == null) {
-                return new ResponseEntity<>("No Item Found in Cart with this Id", HttpStatus.NOT_FOUND);
-            }
-            cart.getItems().remove(cartItem);
-            cart.setTotalPrice(cart.getTotalPrice()
-                    .subtract(cartItem.getPrice().multiply(new BigDecimal(cartItem.getQuantity()))));
-            carts.set(carts.indexOf(cart), cart);
-            return new ResponseEntity<>("Items removed from cart successfully!", HttpStatus.OK);
+        Optional<Cart> cart = findCartByUserId(userId);
+        if (cart.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Cart not found!");
         }
-        return new ResponseEntity<>("Cart not found!", HttpStatus.NOT_FOUND);
+
+        Optional<CartItem> itemToRemove = findItemInCart(cart.get(), productId);
+        if (itemToRemove.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No item found in cart with this product ID.");
+        }
+
+        removeItemFromCart(cart.get(), itemToRemove.get());
+        return ResponseEntity.ok("Item removed from cart successfully!");
     }
 
+    private Cart getOrCreateCart(Long userId) {
+        return findCartByUserId(userId).orElseGet(() -> {
+            Cart newCart = new Cart(userId);
+            carts.add(newCart);
+            return newCart;
+        });
+    }
+
+    private Optional<Cart> findCartByUserId(Long userId) {
+        return carts.stream()
+                .filter(cart -> cart.getUserId().equals(userId))
+                .findFirst();
+    }
+
+    private void addItemToCart(Cart cart, CartItem newItem) {
+        Optional<CartItem> existingItem = findItemInCart(cart, newItem.getProductId());
+
+        if (existingItem.isPresent()) {
+            updateItemQuantityAndPrice(cart, existingItem.get(), newItem.getQuantity());
+        } else {
+            cart.getItems().add(newItem);
+            increaseTotalPrice(cart, newItem.getPrice(), newItem.getQuantity());
+        }
+    }
+
+    private Optional<CartItem> findItemInCart(Cart cart, Long productId) {
+        return cart.getItems().stream()
+                .filter(item -> item.getProductId().equals(productId))
+                .findFirst();
+    }
+
+    private void updateItemQuantityAndPrice(Cart cart, CartItem existingItem, int additionalQty) {
+        BigDecimal oldTotal = existingItem.getPrice().multiply(BigDecimal.valueOf(existingItem.getQuantity()));
+        cart.setTotalPrice(cart.getTotalPrice().subtract(oldTotal));
+
+        existingItem.setQuantity(existingItem.getQuantity() + additionalQty);
+
+        BigDecimal newTotal = existingItem.getPrice().multiply(BigDecimal.valueOf(existingItem.getQuantity()));
+        cart.setTotalPrice(cart.getTotalPrice().add(newTotal));
+    }
+
+    private void increaseTotalPrice(Cart cart, BigDecimal price, int quantity) {
+        cart.setTotalPrice(cart.getTotalPrice().add(price.multiply(BigDecimal.valueOf(quantity))));
+    }
+
+    private boolean replaceCartWithEmpty(Long userId) {
+        Optional<Cart> cart = findCartByUserId(userId);
+        if (cart.isEmpty()) return false;
+
+        Cart emptyCart = new Cart(userId);
+        carts.set(carts.indexOf(cart.get()), emptyCart);
+        return true;
+    }
+
+    private void removeItemFromCart(Cart cart, CartItem item) {
+        cart.getItems().remove(item);
+        decreaseTotalPrice(cart, item.getPrice(), item.getQuantity());
+    }
+
+    private void decreaseTotalPrice(Cart cart, BigDecimal price, int quantity) {
+        cart.setTotalPrice(cart.getTotalPrice().subtract(price.multiply(BigDecimal.valueOf(quantity))));
+    }
 }

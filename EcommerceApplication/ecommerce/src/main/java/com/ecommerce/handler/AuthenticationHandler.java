@@ -13,7 +13,6 @@ import com.ecommerce.model.User;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AuthenticationHandler {
@@ -29,44 +28,45 @@ public class AuthenticationHandler {
     }
 
     public void signUp() {
-        System.out.print("Enter name: ");
-        String name = scanner.nextLine();
-
-        String email;
-        boolean isEmailValid = false;
-        do {
-            System.out.print("Enter Email: ");
-            email = scanner.nextLine();
-            if (isValidEmail(email)) {
-                isEmailValid = true;
-            } else {
-                System.out.println("Invalid email format. Please enter a valid email address.");
-            }
-        } while (!isEmailValid);
-
-        String password;
-        boolean isPasswordValid = false;
-        do {
-            System.out.print("Enter password (at least 8 characters): ");
-            password = scanner.nextLine();
-            if (isValidPassword(password)) {
-                isPasswordValid = true;
-            } else {
-                System.out.println("Invalid password. Must be at least 8 characters.");
-            }
-        } while (!isPasswordValid);
+        String name = prompt("Enter name: ");
+        String email = promptForValidEmail();
+        String password = promptForValidPassword();
 
         User newUser = new User(System.currentTimeMillis(), email, name, password);
+        registerUser(newUser);
+    }
+
+    private String promptForValidEmail() {
+        String email;
+        do {
+            email = prompt("Enter Email: ");
+            if (!isValidEmail(email)) {
+                System.out.println("Invalid email format. Please enter a valid email address.");
+            }
+        } while (!isValidEmail(email));
+        return email;
+    }
+
+    private String promptForValidPassword() {
+        String password;
+        do {
+            password = prompt("Enter password (at least 8 characters): ");
+            if (!isValidPassword(password)) {
+                System.out.println("Invalid password. Must be at least 8 characters.");
+            }
+        } while (!isValidPassword(password));
+        return password;
+    }
+
+    private void registerUser(User newUser) {
         try {
             ResponseEntity<User> response = restTemplate.postForEntity(BASE_URL + "/users/signup", newUser, User.class);
-
             if (response.getStatusCode() == HttpStatus.CREATED) {
                 System.out.println("User registered successfully");
             }
-
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
-                System.out.println("\nRegistration failed: Email is already in use. Please try a different email.");
+                System.out.println("\nRegistration failed: Email is already in use.");
             } else {
                 System.out.println("Registration failed: " + e.getMessage());
             }
@@ -75,53 +75,35 @@ public class AuthenticationHandler {
         }
     }
 
-    // Define a regular expression (regex) pattern for validating email addresses.
-    // The pattern checks for:
-    // - One or more word characters, hyphens, or dots before the '@' symbol.
-    // - A domain name consisting of one or more word characters or hyphens followed
-    // by a dot.
-    // - A top-level domain (TLD) that is 2 to 4 characters long (e.g., .com, .org,
-    // .info).
-    private static boolean isValidEmail(String email) {
-        String regex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(email);
-        return matcher.matches();
-    }
-
-    private static boolean isValidPassword(String password) {
-        return password.length() >= 8;
-    }
-
     public Optional<User> login() {
-        System.out.print("Enter email: ");
-        String email = scanner.nextLine();
-        System.out.print("Enter password: ");
-        String password = scanner.nextLine();
+        String email = prompt("Enter email: ");
+        String password = prompt("Enter password: ");
 
+        return performLogin(email, password);
+    }
+
+    private Optional<User> performLogin(String email, String password) {
         try {
-            ResponseEntity<User> loginResponse = restTemplate
-                    .postForEntity(BASE_URL + "/users/login?email=" + email + "&password=" + password, null,
-                            User.class);
+            ResponseEntity<User> response = restTemplate.postForEntity(
+                    BASE_URL + "/users/login?email=" + email + "&password=" + password,
+                    null,
+                    User.class
+            );
 
-            User user = loginResponse.getBody();
+            return Optional.ofNullable(response.getBody()).map(user -> {
+                System.out.println("Login successful!\nWelcome, " + user.getName() + "!");
+                setSecurityContext(email);
+                return user;
+            });
 
-            System.out.println("Login successful!");
-
-            System.out.println("Welcome, " + user.getName() + "!");
-
-            setSecurityContext(email);
-            return Optional.of(user);
-
-        } catch (HttpClientErrorException exception) {
-            if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
                 System.out.println("Invalid credentials!");
             } else {
-                System.out.println("Login Failed: " + exception.getMessage());
+                System.out.println("Login Failed: " + e.getMessage());
             }
-
-        } catch (Exception exception) {
-            System.out.println("An unexpected error occurred during login: " + exception.getMessage());
+        } catch (Exception e) {
+            System.out.println("Unexpected error during login: " + e.getMessage());
         }
 
         return Optional.empty();
@@ -135,11 +117,23 @@ public class AuthenticationHandler {
 
     private void setSecurityContext(String username) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
-
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null,
-                List.of(new SimpleGrantedAuthority("ROLE_USER")));
-
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(username, null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
+    }
+
+    private boolean isValidEmail(String email) {
+        String regex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
+        return Pattern.compile(regex).matcher(email).matches();
+    }
+
+    private boolean isValidPassword(String password) {
+        return password.length() >= 8;
+    }
+
+    private String prompt(String message) {
+        System.out.print(message);
+        return scanner.nextLine();
     }
 }
