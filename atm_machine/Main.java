@@ -9,7 +9,7 @@ import atm_machine.service.ATMService;
 
 public class Main{
      public static void main(String[] args) {
-        Account account = new BasicAccount("12345678", "1234",3000, 10000);
+        Account account = new BasicAccount("12345678", "1234",3000, 100);
         ATMService atmService = new ATMService(50000);
         Scanner scanner = new Scanner(System.in);
 
