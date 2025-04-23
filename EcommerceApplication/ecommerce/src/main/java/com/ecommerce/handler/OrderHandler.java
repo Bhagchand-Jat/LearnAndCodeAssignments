@@ -6,19 +6,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.ecommerce.EcommerceApplication;
 import com.ecommerce.model.Order;
 
 public class OrderHandler {
 
     private final RestTemplate restTemplate;
     private final Scanner scanner;
-    private final String BASE_URL;
     private final Long loggedInUserId;
 
-    public OrderHandler(RestTemplate restTemplate, String BASE_URL, Long loggedInUserId, Scanner scanner) {
+    public OrderHandler(RestTemplate restTemplate,Long loggedInUserId, Scanner scanner) {
         this.restTemplate = restTemplate;
         this.scanner = scanner;
-        this.BASE_URL = BASE_URL;
         this.loggedInUserId = loggedInUserId;
     }
 
@@ -37,7 +36,7 @@ public class OrderHandler {
     private void submitOrderRequest(Long productId) {
         try {
             Order newOrder = restTemplate.postForObject(
-                BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + productId,
+                EcommerceApplication.BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + productId,
                 null,
                 Order.class
             );
@@ -81,7 +80,7 @@ public class OrderHandler {
     }
 
     private Order[] fetchOrderHistory() {
-        return restTemplate.getForObject(BASE_URL + "/orders/" + loggedInUserId, Order[].class);
+        return restTemplate.getForObject(EcommerceApplication.BASE_URL + "/orders/" + loggedInUserId, Order[].class);
     }
 
     private void handleOrderHistoryError(HttpClientErrorException e) {

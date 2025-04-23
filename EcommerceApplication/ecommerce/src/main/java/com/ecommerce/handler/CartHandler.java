@@ -6,6 +6,7 @@ import java.util.Scanner;
 
 import org.springframework.web.client.RestTemplate;
 
+import com.ecommerce.EcommerceApplication;
 import com.ecommerce.model.Cart;
 import com.ecommerce.model.CartItem;
 import com.ecommerce.model.Order;
@@ -14,13 +15,11 @@ import com.ecommerce.model.Product;
 public class CartHandler {
     private final RestTemplate restTemplate;
     private final Scanner scanner;
-    private final String BASE_URL;
     private final Long loggedInUserId;
 
-    public CartHandler(RestTemplate restTemplate, String BASE_URL, Long loggedInUserId, Scanner scanner) {
+    public CartHandler(RestTemplate restTemplate, Long loggedInUserId, Scanner scanner) {
         this.restTemplate = restTemplate;
         this.scanner = scanner;
-        this.BASE_URL = BASE_URL;
         this.loggedInUserId = loggedInUserId;
     }
 
@@ -68,7 +67,7 @@ public class CartHandler {
 
         try {
             String response = restTemplate.postForObject(
-                    BASE_URL + "/cart/add?userId=" + loggedInUserId, item, String.class);
+                    EcommerceApplication.BASE_URL + "/cart/add?userId=" + loggedInUserId, item, String.class);
             System.out.println(response);
         } catch (Exception e) {
             System.out.println("Error adding to cart: " + e.getMessage());
@@ -91,7 +90,7 @@ public class CartHandler {
     private void removeProductFromCart() {
         Long productId = promptProductId();
         try {
-            restTemplate.delete(BASE_URL + "/cart/delete?userId=" + loggedInUserId + "&productId=" + productId);
+            restTemplate.delete(EcommerceApplication.BASE_URL + "/cart/delete?userId=" + loggedInUserId + "&productId=" + productId);
             System.out.println("Item removed from cart (if it existed).");
         } catch (Exception e) {
             System.out.println("Error removing from cart: " + e.getMessage());
@@ -121,7 +120,7 @@ public class CartHandler {
 
     public void clearCart() {
         try {
-            restTemplate.delete(BASE_URL + "/cart/clear/" + loggedInUserId);
+            restTemplate.delete(EcommerceApplication.BASE_URL + "/cart/clear/" + loggedInUserId);
             System.out.println("Cart cleared successfully!");
         } catch (Exception e) {
             System.out.println("Error clearing cart: " + e.getMessage());
@@ -143,7 +142,7 @@ public class CartHandler {
 
     private Optional<Product> fetchProduct(Long productId) {
         try {
-            Product product = restTemplate.getForObject(BASE_URL + "/products/" + productId, Product.class);
+            Product product = restTemplate.getForObject(EcommerceApplication.BASE_URL + "/products/" + productId, Product.class);
             return Optional.ofNullable(product);
         } catch (Exception e) {
             return Optional.empty();
@@ -152,7 +151,7 @@ public class CartHandler {
 
     private Optional<Cart> fetchCart() {
         try {
-            Cart cart = restTemplate.getForObject(BASE_URL + "/cart/view/" + loggedInUserId, Cart.class);
+            Cart cart = restTemplate.getForObject(EcommerceApplication.BASE_URL + "/cart/view/" + loggedInUserId, Cart.class);
             return Optional.ofNullable(cart);
         } catch (Exception e) {
             return Optional.empty();
@@ -183,7 +182,7 @@ public class CartHandler {
             for (int i = 0; i < item.getQuantity(); i++) {
                 try {
                     Order order = restTemplate.postForObject(
-                            BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + item.getProductId(),
+                            EcommerceApplication.BASE_URL + "/orders?userId=" + loggedInUserId + "&productId=" + item.getProductId(),
                             null, Order.class);
                     Optional.ofNullable(order).ifPresent(o -> System.out.println("Order placed for product ID " +
                             item.getProductId() + ": " + o.formatOrderDetails()));

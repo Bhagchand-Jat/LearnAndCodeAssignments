@@ -8,6 +8,8 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
+import com.ecommerce.EcommerceApplication;
 import com.ecommerce.model.User;
 
 import java.util.List;
@@ -19,12 +21,10 @@ public class AuthenticationHandler {
 
     private final RestTemplate restTemplate;
     private final Scanner scanner;
-    private final String BASE_URL;
 
-    public AuthenticationHandler(RestTemplate restTemplate, String BASE_URL, Scanner scanner) {
+    public AuthenticationHandler(RestTemplate restTemplate, Scanner scanner) {
         this.restTemplate = restTemplate;
         this.scanner = scanner;
-        this.BASE_URL = BASE_URL;
     }
 
     public void signUp() {
@@ -60,7 +60,7 @@ public class AuthenticationHandler {
 
     private void registerUser(User newUser) {
         try {
-            ResponseEntity<User> response = restTemplate.postForEntity(BASE_URL + "/users/signup", newUser, User.class);
+            ResponseEntity<User> response = restTemplate.postForEntity(EcommerceApplication.BASE_URL + "/users/signup", newUser, User.class);
             if (response.getStatusCode() == HttpStatus.CREATED) {
                 System.out.println("User registered successfully");
             }
@@ -85,7 +85,7 @@ public class AuthenticationHandler {
     private Optional<User> performLogin(String email, String password) {
         try {
             ResponseEntity<User> response = restTemplate.postForEntity(
-                    BASE_URL + "/users/login?email=" + email + "&password=" + password,
+                    EcommerceApplication.BASE_URL + "/users/login?email=" + email + "&password=" + password,
                     null,
                     User.class
             );
