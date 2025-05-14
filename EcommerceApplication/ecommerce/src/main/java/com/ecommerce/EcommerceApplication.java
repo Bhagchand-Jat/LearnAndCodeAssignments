@@ -60,12 +60,12 @@ public class EcommerceApplication implements CommandLineRunner {
         return choice;
     }
 
-    private void exitApplication() {
+   public void exitApplication() {
         System.out.println("Exiting Application");
         System.exit(0);
     }
 
-    private void handleLoggedInUser(AuthenticationHandler authenticationHandler) {
+   public void handleLoggedInUser(AuthenticationHandler authenticationHandler) {
         CartHandler cartHandler = new CartHandler(restTemplate, user.get().getId(), scanner);
         OrderHandler orderHandler = new OrderHandler(restTemplate, user.get().getId(), scanner);
         ProductHandler productHandler = new ProductHandler(restTemplate, scanner);

@@ -52,7 +52,7 @@ public class CartHandler {
         return choice;
     }
 
-    private void addProductToCart() {
+    public void addProductToCart() {
         Long productId = promptProductId();
         int quantity = promptQuantity();
 
@@ -74,7 +74,7 @@ public class CartHandler {
         }
     }
 
-    private void viewCart() {
+    public void viewCart() {
         try {
             Optional<Cart> cartOpt = fetchCart();
             if (cartOpt.isPresent() && !cartOpt.get().getItems().isEmpty()) {
@@ -87,7 +87,7 @@ public class CartHandler {
         }
     }
 
-    private void removeProductFromCart() {
+    public void removeProductFromCart() {
         Long productId = promptProductId();
         try {
             restTemplate.delete(EcommerceApplication.BASE_URL + "/cart/delete?userId=" + loggedInUserId + "&productId=" + productId);
@@ -97,7 +97,7 @@ public class CartHandler {
         }
     }
 
-    private void placeOrderFromCart() {
+    public void placeOrderFromCart() {
         try {
             Optional<Cart> cartOpt = fetchCart();
             if (cartOpt.isEmpty() || cartOpt.get().getItems().isEmpty()) {

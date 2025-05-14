@@ -36,7 +36,7 @@ public class AuthenticationHandler {
         registerUser(newUser);
     }
 
-    private String promptForValidEmail() {
+    public String promptForValidEmail() {
         String email;
         do {
             email = prompt("Enter Email: ");
@@ -47,7 +47,7 @@ public class AuthenticationHandler {
         return email;
     }
 
-    private String promptForValidPassword() {
+    public String promptForValidPassword() {
         String password;
         do {
             password = prompt("Enter password (at least 8 characters): ");
@@ -58,7 +58,7 @@ public class AuthenticationHandler {
         return password;
     }
 
-    private void registerUser(User newUser) {
+    public void registerUser(User newUser) {
         try {
             ResponseEntity<User> response = restTemplate.postForEntity(EcommerceApplication.BASE_URL + "/users/signup", newUser, User.class);
             if (response.getStatusCode() == HttpStatus.CREATED) {
@@ -82,7 +82,7 @@ public class AuthenticationHandler {
         return performLogin(email, password);
     }
 
-    private Optional<User> performLogin(String email, String password) {
+    public Optional<User> performLogin(String email, String password) {
         try {
             ResponseEntity<User> response = restTemplate.postForEntity(
                     EcommerceApplication.BASE_URL + "/users/login?email=" + email + "&password=" + password,
@@ -115,24 +115,30 @@ public class AuthenticationHandler {
         return Optional.empty();
     }
 
-    private void setSecurityContext(String username) {
+    public void setSecurityContext(String username) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(username, null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
+        if(username!=null){
+            UsernamePasswordAuthenticationToken authentication =
+            new UsernamePasswordAuthenticationToken(username, null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+    context.setAuthentication(authentication);
+    SecurityContextHolder.setContext(context);
+        }else{
+            context.setAuthentication(null);
+            
+        }
+       
     }
 
-    private boolean isValidEmail(String email) {
+    public boolean isValidEmail(String email) {
         String regex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
         return Pattern.compile(regex).matcher(email).matches();
     }
 
-    private boolean isValidPassword(String password) {
+    public boolean isValidPassword(String password) {
         return password.length() >= 8;
     }
 
-    private String prompt(String message) {
+    public String prompt(String message) {
         System.out.print(message);
         return scanner.nextLine();
     }
