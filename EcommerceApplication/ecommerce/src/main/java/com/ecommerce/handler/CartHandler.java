@@ -140,7 +140,7 @@ public class CartHandler {
         return qty;
     }
 
-    private Optional<Product> fetchProduct(Long productId) {
+    public Optional<Product> fetchProduct(Long productId) {
         try {
             Product product = restTemplate.getForObject(EcommerceApplication.BASE_URL + "/products/" + productId, Product.class);
             return Optional.ofNullable(product);
@@ -149,7 +149,7 @@ public class CartHandler {
         }
     }
 
-    private Optional<Cart> fetchCart() {
+    public Optional<Cart> fetchCart() {
         try {
             Cart cart = restTemplate.getForObject(EcommerceApplication.BASE_URL + "/cart/view/" + loggedInUserId, Cart.class);
             return Optional.ofNullable(cart);

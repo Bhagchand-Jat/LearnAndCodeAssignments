@@ -41,6 +41,7 @@ public class Order {
         this.product = product;
     }
 
+
     public Long getId() {
         return id;
     }
@@ -59,6 +60,16 @@ public class Order {
 
     public LocalDateTime getExpectedDelivery() {
         return expectedDelivery;
+    }
+
+    
+
+    public User getUser() {
+        return user;
+    }
+
+    public Product getProduct() {
+        return product;
     }
 
     public void setExpectedDelivery(LocalDateTime expectedDelivery) {
